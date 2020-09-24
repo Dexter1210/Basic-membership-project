@@ -9,28 +9,24 @@ class ApplicationController < ActionController::Base
     # end
 
     protect_from_forgery unless: -> {request.format.json? }
-    before_action :validate_user!,except: [:login]
+    before_action :validate_user!,except: [:login,:logout]
 
     private
+  def validate_user! 
+    if request.headers['Authorization'].present?
+      # {'Authorization' : 'Bearer <TOKEN>'}
+      token = request.headers["Authorization"]
+      token = token.split(" ")[1]  # Remove "Bearer"
 
-    def validate_user!
-        if request.headers['Authorization'].present?
-            #{'Authorization':'Bearer <TOKEN>'}
-            token=request.headers["Authorization"]
-            token=token.split(" ")[1]
+      begin 
+        jwt_payload = JWT.decode(token, Rails.application.secrets.secret_key_base).first
+        @current_user_id = jwt_payload['id']
 
-            begin
-                jwt_payload=JWT.decode(token,Rails.application.secrets.secret_key_base).first
-                @current_user_id=jwt_payload['id']
-            end
-
-        rescue=>exception
-            head:unauthorized
-            
-        end
-    else
-        head:unauthorized
-
+      rescue => exception 
+        head :unauthorized
+      end
+    else 
+      #head :unauthorized
     end
-
+  end
 end
